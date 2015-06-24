@@ -2,28 +2,62 @@ package com.vmware.service;
 
 
 import static spark.Spark.*;
-
-import java.io.File;
+import io.advantageous.qbit.QBit;
+import io.advantageous.qbit.events.EventBusProxyCreator;
+import io.advantageous.qbit.events.EventManager;
+import io.advantageous.qbit.events.EventManagerBuilder;
+import io.advantageous.qbit.service.ServiceQueue;
 
 import jodd.http.HttpRequest;
 import jodd.http.HttpResponse;
 import jodd.json.JsonParser;
-import jodd.util.StringBand;
 
 import com.vmware.model.LocateContainer;
 
-/**
- * Hello world!
- *
- */
+import static io.advantageous.qbit.service.ServiceBuilder.serviceBuilder;
+import static io.advantageous.qbit.service.ServiceProxyUtils.flushServiceProxy;
+
+
 public class RegistrationService 
 {
+	
+	public static final String CREATE_CHANNEL = "create";
 	 public static void main(String[] args) {
 	        
 		 RegistrationService obj = new RegistrationService();
 		 
-		 	get("/hello", (req, res) -> "Hello World");
-		 	
+
+	 	EventManager privateEventBus = EventManagerBuilder.eventManagerBuilder().setName("register").build();
+	 	ServiceQueue privateEventBusServiceQueue = serviceBuilder()
+                .setServiceObject(privateEventBus)
+                .setInvokeDynamic(false).build();
+
+        final EventBusProxyCreator eventBusProxyCreator =
+                QBit.factory().eventBusProxyCreator();
+
+        final MonitorService EventManager =
+                eventBusProxyCreator.createProxy(privateEventBus, MonitorService.class);
+        
+        ServiceHandler test = new ServiceHandler(EventManager);
+        SpwanMonitorService sms = new SpwanMonitorService();
+        
+        ServiceQueue testServiceQueue = serviceBuilder()
+                .setServiceObject(test)
+                .setInvokeDynamic(false).build();
+
+        ServiceQueue execServiceQueue = serviceBuilder()
+                .setServiceObject(sms)
+                .setInvokeDynamic(false).build();
+
+        privateEventBus.joinService(execServiceQueue);
+
+        privateEventBusServiceQueue.start();
+        testServiceQueue.start();
+        execServiceQueue.start();
+
+        ServiceClient ServiceClientProxy =
+                testServiceQueue.createProxy(ServiceClient.class);
+
 		 	post("/registerContainer", (req, res) -> {
 		 		LocateContainer cont = new JsonParser().parse(req.body(), LocateContainer.class);
 		 		obj.addContainer(cont);
@@ -36,13 +70,8 @@ public class RegistrationService
 		 		url.append(cont.getContainerName());
 		 		url.append("/stats");
 		 		
-		 		ProcessBuilder pb = new ProcessBuilder(new String[]{"java","-jar","/Users/skarkamanboina/Documents/workspace/Registration/src/test/java/Host/Registration/docker-0.0.1-SNAPSHOT.one-jar.jar", url.toString()});
-		 		File outputFile = new File("/Users/skarkamanboina/Documents/workspace/Registration/src/test/java/Host/Registration/"+cont.getIpAddress()+"_log.txt");
-                File errorFile = new File("/Users/skarkamanboina/Documents/workspace/Registration/src/test/java/Host/Registration/"+cont.getIpAddress()+"_ErrLog.txt");
-                pb.redirectOutput(outputFile);
-                pb.redirectError(errorFile);
-                Process process = pb.start();
-                        //process.waitFor();
+		 		ServiceClientProxy.createInstance(url.toString(), cont.getIpAddress());
+		 		flushServiceProxy(ServiceClientProxy);
                return 1;
 		 	});
 		 	

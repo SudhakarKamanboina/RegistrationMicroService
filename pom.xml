@@ -34,6 +34,25 @@
 			<version>3.6.6</version>
 	</dependency>
 	
+	<dependency>
+	<groupId>io.advantageous.qbit</groupId>
+	<artifactId>qbit-core</artifactId>
+	<version>0.8.10</version>
+</dependency>
+	
+	<dependency>
+	<groupId>io.advantageous.qbit</groupId>
+	<artifactId>qbit-vertx</artifactId>
+	<version>0.8.10</version>
+</dependency>
+	
+	<dependency>
+	<groupId>io.advantageous.qbit</groupId>
+	<artifactId>qbit-boon</artifactId>
+	<version>0.8.10</version>
+</dependency>
+	
+	
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
